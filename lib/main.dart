@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stack_trace/stack_trace.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,19 +57,15 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> capturing(Function() errorHandle) async {
     print("capturing=================================");
     printZone();
-    // try {
-    //   await Chain.capture(() async {
-    //     printZone();
-    //     await okFunc();
-    //     errFunc();
-    //   }, onError: (error, stack) {
-    //     printZone();
-    //     errorHandle();
-    //     throw error;
-    //   });
-    // } catch (e) {
-    //   print(e);
-    // }
+    await Chain.capture(() async {
+      printZone();
+      await okFunc();
+      errFunc();
+    }, onError: (error, stack) {
+      printZone();
+      errorHandle();
+      throw error;
+    });
   }
 
   Future<void> tryingRunZonedGuarded(Function() errorHandle) async {
@@ -85,9 +82,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future<void> tryingCapture() async {
+  Future<void> tryingCatchError() async {
     try {
-      tryingRunZonedGuarded(() => print("debug aaa"));
+      capturing(() => print("debug aaa"));
     } catch (e) {
       print("debug bbb");
       print(e);
@@ -147,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: const Text("runZonedGuardedを使って、同一ZONE内でのエラー処理ができる")),
             SizedBox.fromSize(size: const Size(20, 20)),
             ElevatedButton(
-                onPressed: tryingCapture,
+                onPressed: tryingCatchError,
                 child: const Text("captureのエラー内容を呼び出し元でキャッチする")),
           ],
         ),
