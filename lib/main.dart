@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:stack_trace/stack_trace.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,60 +30,67 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  Future<void> capturing() async {
-    print("capturing=================================");
-    printZone();
-    Chain.capture(() async {
-      printZone();
-      await okFunc();
-      errFunc();
-    }, onError: (error, stack) {
-      printZone();
-      showSnackBar();
-    });
-  }
+class Response {
+  dynamic result;
+  Object? error;
 
+  Response({this.result, this.error});
+}
+
+class _MyHomePageState extends State<MyHomePage> {
   // 非同期処理自体を処理しようとすると（scope内でawaitしないと）エラーキャッチできない
-  Future<void> trying() async {
+  Future<void> trying(Function() errorHandle) async {
     print("trying=================================");
     printZone();
     try {
       printZone();
       await okFunc();
       // 非同期実行だとZone外になってしまう
-      errFunc();
+      Future(() => errFunc());
     } catch (error, stack) {
       printZone();
-      showSnackBar();
+      errorHandle();
     }
   }
 
-  Future<void> tryingRunZonedGuarded() async {
+  Future<void> capturing(Function() errorHandle) async {
+    print("capturing=================================");
+    printZone();
+    // try {
+    //   await Chain.capture(() async {
+    //     printZone();
+    //     await okFunc();
+    //     errFunc();
+    //   }, onError: (error, stack) {
+    //     printZone();
+    //     errorHandle();
+    //     throw error;
+    //   });
+    // } catch (e) {
+    //   print(e);
+    // }
+  }
+
+  Future<void> tryingRunZonedGuarded(Function() errorHandle) async {
     print("tryingRunZonedGuarded=================================");
     printZone();
+
     runZonedGuarded(() async {
       printZone();
       await okFunc();
       errFunc();
-    }, (error, stack) {
+    }, (error, stackTrace) {
       printZone();
-      showSnackBar();
+      errorHandle();
     });
   }
 
   Future<void> tryingCapture() async {
     try {
-      runZoned(() {
-        Chain.capture(() async {
-          await okFunc();
-          errFunc();
-        }, onError: (error, stack) {
-          throw error;
-        });
-      });
+      tryingRunZonedGuarded(() => print("debug aaa"));
     } catch (e) {
-      showSnackBar();
+      print("debug bbb");
+      print(e);
     }
   }
 
@@ -128,14 +134,16 @@ class _MyHomePageState extends State<MyHomePage> {
             const Text("エラーがキャッチできていれば、SnackBarをだす"),
             SizedBox.fromSize(size: const Size(20, 20)),
             ElevatedButton(
-                onPressed: trying,
+                onPressed: () async => trying(() => showSnackBar()),
                 child: const Text("tryで非同期処理をキャッチしようと思ってもできない")),
             SizedBox.fromSize(size: const Size(20, 20)),
             ElevatedButton(
-                onPressed: capturing, child: const Text("captureだと取得できる")),
+                onPressed: () async => capturing(() => showSnackBar()),
+                child: const Text("captureだと取得できる")),
             SizedBox.fromSize(size: const Size(20, 20)),
             ElevatedButton(
-                onPressed: tryingRunZonedGuarded,
+                onPressed: () async =>
+                    tryingRunZonedGuarded(() => showSnackBar()),
                 child: const Text("runZonedGuardedを使って、同一ZONE内でのエラー処理ができる")),
             SizedBox.fromSize(size: const Size(20, 20)),
             ElevatedButton(
