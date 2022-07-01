@@ -4,7 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 void main() {
-  runApp(const MyApp());
+  runZonedGuarded(() {
+    runApp(const MyApp());
+  }, (error, stack) {
+    print("main catch by runZonedGuarded");
+    print(error);
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -91,6 +96,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> throwError() async {
+    await errFunc();
+  }
+
   void printZone() {
     print(
         "crrnt zone name: ${Zone.current.toString()}, hash:${Zone.current.hashCode}"); // _RootZone
@@ -146,6 +155,10 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
                 onPressed: tryingCatchError,
                 child: const Text("captureのエラー内容を呼び出し元でキャッチする")),
+            SizedBox.fromSize(size: const Size(20, 20)),
+            ElevatedButton(
+                onPressed: throwError,
+                child: const Text("エラーを投げて、mainでキャッチする")),
           ],
         ),
       ),
